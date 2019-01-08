@@ -1,27 +1,28 @@
 // zmienne globalne
-var gl_canvas;
-var gl_ctx;
+let gl_canvas;
+let gl_ctx;
 
-var _position;
-var _uv;
-var _sampler;
+let _position;
+let _uv;
+let _sampler;
 
-var _triangleVertexBuffer;
-var _triangleFacesBuffer;
+let _triangleVertexBuffer;
+let _triangleFacesBuffer;
 
-var _PosMatrix;
-var _MovMatrix;
-var _ViewMatrix;
-var _matrixProjection;
-var _matrixMovement;
-var _matrixView;
-var _cubeTexture;
+let _PosMatrix;
+let _MovMatrix;
+let _ViewMatrix;
+let _matrixProjection;
+let _matrixMovement;
+let _matrixView;
+let _cubeTexture;
 
-var rotationSpeed = 0.001;
-var zoomRatio = -6;
+const rotationSpeed = 0.001;
+const zoomRatio = -6;
 
-var X, Y, Z;
-var texture;
+let X, Y, Z;
+let texture;
+let animation;
 
 // funkcja główna 
 function runWebGL() {
@@ -62,7 +63,7 @@ function gl_getContext(canvas) {
 
 // shadery
 function gl_initShaders() {
-    var vertexShader = `
+    const vertexShader = `
         attribute vec3 position;
         uniform mat4 PosMatrix;
         uniform mat4 MovMatrix;
@@ -74,7 +75,7 @@ function gl_initShaders() {
         vUV = uv;
         }`;
 
-    var fragmentShader = `
+    const fragmentShader = `
         precision mediump float;
         uniform sampler2D sampler;
         varying vec2 vUV;
@@ -82,8 +83,8 @@ function gl_initShaders() {
            gl_FragColor = texture2D(sampler, vUV);
         }`;
 
-    var getShader = function (source, type, typeString) {
-        var shader = gl_ctx.createShader(type);
+    const getShader = function (source, type, typeString) {
+        const shader = gl_ctx.createShader(type);
         gl_ctx.shaderSource(shader, source);
         gl_ctx.compileShader(shader);
 
@@ -94,10 +95,10 @@ function gl_initShaders() {
         return shader;
     };
 
-    var shaderVertex = getShader(vertexShader, gl_ctx.VERTEX_SHADER, "VERTEX");
-    var shaderFragment = getShader(fragmentShader, gl_ctx.FRAGMENT_SHADER, "FRAGMENT");
+    const shaderVertex = getShader(vertexShader, gl_ctx.VERTEX_SHADER, "VERTEX");
+    const shaderFragment = getShader(fragmentShader, gl_ctx.FRAGMENT_SHADER, "FRAGMENT");
 
-    var shaderProgram = gl_ctx.createProgram();
+    const shaderProgram = gl_ctx.createProgram();
     gl_ctx.attachShader(shaderProgram, shaderVertex);
     gl_ctx.attachShader(shaderProgram, shaderFragment);
 
@@ -120,7 +121,7 @@ function gl_initShaders() {
 
 // bufory
 function gl_initBuffers() {
-    var triangleVertices = [
+    const triangleVertices = [
         -1, -1, -1, 0, 0,
         1, -1, -1, 1, 0,
         1, 1, -1, 1, 1,
@@ -153,7 +154,7 @@ function gl_initBuffers() {
         new Float32Array(triangleVertices),
         gl_ctx.STATIC_DRAW);
 
-    var triangleFaces = [
+    const triangleFaces = [
         0, 1, 2,
         0, 2, 3,
         4, 5, 6,
@@ -188,7 +189,7 @@ function gl_setMatrix() {
 // tekstura
 
 function gl_initTexture() {
-    var img = new Image();
+    const img = new Image();
     if (texture === '1') {
         img.src = 'textures/cubeTexture1.png';
     } else if (texture === '2'){
@@ -199,7 +200,7 @@ function gl_initTexture() {
     img.webglTexture = false;
 
     img.onload = function (e) {
-        var texture = gl_ctx.createTexture();
+        const texture = gl_ctx.createTexture();
 
         gl_ctx.pixelStorei(gl_ctx.UNPACK_FLIP_Y_WEBGL, true);
         gl_ctx.bindTexture(gl_ctx.TEXTURE_2D, texture);
@@ -219,14 +220,18 @@ function gl_initTexture() {
 
 // rysowanie 
 function gl_draw() {
+    if (animation) {
+        window.cancelAnimationFrame(animation)
+    }
+
     gl_ctx.clearColor(0.0, 0.0, 0.0, 0.0);
     gl_ctx.enable(gl_ctx.DEPTH_TEST);
     gl_ctx.depthFunc(gl_ctx.LEQUAL);
     gl_ctx.clearDepth(1.0);
-    var timeOld = 0;
+    let timeOld = 0;
 
-    var animate = function (time) {
-        var dAngle = rotationSpeed * (time - timeOld);
+    const animate = function (time) {
+        const dAngle = rotationSpeed * (time - timeOld);
         if (X) {
             MATRIX.rotateX(_matrixMovement, dAngle);
         }
@@ -259,7 +264,7 @@ function gl_draw() {
         gl_ctx.drawElements(gl_ctx.TRIANGLES, 5*2*3, gl_ctx.UNSIGNED_SHORT, 0);
         gl_ctx.flush();
 
-        window.requestAnimationFrame(animate);
+        animation = window.requestAnimationFrame(animate);
     };
     animate(0);
 }
