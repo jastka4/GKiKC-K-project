@@ -7,17 +7,40 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 
-<body onload="runWebGL()">
+<body>
     <form>
-        <input type="checkbox" id="rotateX"> rotacja X
-        <input type="checkbox" id="rotateY"> rotacja Y
-        <input type="checkbox" id="rotateZ"> rotacja Z
+        <label>
+            <input type="radio" name="texture" value="1" checked> tekstura 1
+        </label>
+        <label>
+            <input type="radio" name="texture" value="2"> tekstura 2
+        </label>
+        <label>
+            <input type="radio" name="texture" value="3"> tekstura 3
+        </label>
+
+        <br>
+        <br>
+
+        <label>
+            <input type="checkbox" id="rotateX"> rotacja X
+        </label>
+        <label>
+            <input type="checkbox" id="rotateY"> rotacja Y
+        </label>
+        <label>
+            <input type="checkbox" id="rotateZ"> rotacja Z
+        </label>
+        <br>
+        <br>
     </form>
 
 
     <canvas id="glcanvas" width="500" height="300">
         Brak wsparcia dla elementu HTML5 typu canvas
     </canvas>
+    <br>
+    <input type="button" value="Uruchom" onclick="runWebGL()">
     <script src="js/main.js"></script>
     <script src="js/matrix.js"></script>
 </body>

@@ -21,10 +21,12 @@ var rotationSpeed = 0.001;
 var zoomRatio = -6;
 
 var X, Y, Z;
+var texture;
 
 // funkcja główna 
 function runWebGL() {
     getRotation();
+    getTexture();
     gl_canvas = document.getElementById("glcanvas");
     gl_ctx = gl_getContext(gl_canvas);
     gl_initShaders();
@@ -39,6 +41,10 @@ function getRotation() {
     X = document.getElementById('rotateX').checked;
     Y = document.getElementById('rotateY').checked;
     Z = document.getElementById('rotateZ').checked;
+}
+
+function getTexture() {
+    texture = document.querySelector('input[name="texture"]:checked').value;
 }
 
 // pobranie kontekstu WebGL
@@ -183,7 +189,13 @@ function gl_setMatrix() {
 
 function gl_initTexture() {
     var img = new Image();
-    img.src = 'cubeTexture.png';
+    if (texture === '1') {
+        img.src = 'textures/cubeTexture1.png';
+    } else if (texture === '2'){
+        img.src = 'textures/cubeTexture2.png';
+    } else {
+        img.src = 'textures/cubeTexture3.png';
+    }
     img.webglTexture = false;
 
     img.onload = function (e) {
