@@ -23,6 +23,23 @@ const zoomRatio = -6;
 let X, Y, Z;
 let texture;
 let animation;
+let offset, stride, count;
+let figure = document.querySelector('input[name="figure"]:checked').value;
+
+function setTextureChoiceDisabled(isDisabled) {
+    document.querySelectorAll('input[name="texture"]').forEach(input => input.disabled = isDisabled);
+}
+
+document.querySelectorAll('input[name="figure"]').forEach(input => input.addEventListener('click', () => {
+    if (input.checked) {
+        figure = input.value;
+    }
+    if (figure === '1') {
+        setTextureChoiceDisabled(false);
+    } else {
+        setTextureChoiceDisabled(true);
+    }
+}));
 
 // funkcja główna 
 function runWebGL() {
@@ -71,8 +88,8 @@ function gl_initShaders() {
         attribute vec2 uv;
         varying vec2 vUV;
         void main(void) {
-        gl_Position = PosMatrix * ViewMatrix * MovMatrix * vec4(position, 1.);
-        vUV = uv;
+            gl_Position = PosMatrix * ViewMatrix * MovMatrix * vec4(position, 1.);
+            vUV = uv;
         }`;
 
     const fragmentShader = `
@@ -80,7 +97,7 @@ function gl_initShaders() {
         uniform sampler2D sampler;
         varying vec2 vUV;
         void main(void) {
-           gl_FragColor = texture2D(sampler, vUV);
+            gl_FragColor = texture2D(sampler, vUV);
         }`;
 
     const getShader = function (source, type, typeString) {
@@ -121,53 +138,26 @@ function gl_initShaders() {
 
 // bufory
 function gl_initBuffers() {
-    const triangleVertices = [
-        -1, -1, -1, 0, 0,
-        1, -1, -1, 1, 0,
-        1, 1, -1, 1, 1,
-        -1, 1, -1, 0, 1,
-        -1, -1, 1, 0, 0,
-        1, -1, 1, 1, 0,
-        1, 1, 1, 1, 1,
-        -1, 1, 1, 0, 1,
-        -1, -1, -1, 0, 0,
-        -1, 1, -1, 1, 0,
-        -1, 1, 1, 1, 1,
-        -1, -1, 1, 0, 1,
-        1, -1, -1, 0, 0,
-        1, 1, -1, 1, 0,
-        1, 1, 1, 1, 1,
-        1, -1, 1, 0, 1,
-        -1, -1, -1, 0, 0,
-        -1, -1, 1, 1, 0,
-        1, -1, 1, 1, 1,
-        1, -1, -1, 0, 1,
-        -1, 1, -1, 0, 0,
-        -1, 1, 1, 1, 0,
-        1, 1, 1, 1, 1,
-        1, 1, -1, 0, 1
-    ];
+    let triangleVertices, triangleFaces;
+    if (figure === '1') {
+        triangleVertices = getQubeTriangleVertices();
+        triangleFaces = getQubeTriangleFaces();
+        stride = (2 + 3) * Float32Array.BYTES_PER_ELEMENT;
+        offset = 3 * Float32Array.BYTES_PER_ELEMENT;
+        count = 5*2*3;
+    } else if (figure === '2') {
+        triangleVertices = getTetrahedronTriangleVertices();
+        triangleFaces = getTetrahedronTriangleFaces();
+        stride = (2 + 3) * Float32Array.BYTES_PER_ELEMENT;
+        offset = 3 * Float32Array.BYTES_PER_ELEMENT;
+        count = 12;
+    }
 
     _triangleVertexBuffer = gl_ctx.createBuffer();
     gl_ctx.bindBuffer(gl_ctx.ARRAY_BUFFER, _triangleVertexBuffer);
     gl_ctx.bufferData(gl_ctx.ARRAY_BUFFER,
         new Float32Array(triangleVertices),
         gl_ctx.STATIC_DRAW);
-
-    const triangleFaces = [
-        0, 1, 2,
-        0, 2, 3,
-        4, 5, 6,
-        4, 6, 7,
-        8, 9, 10,
-        8, 10, 11,
-        12, 13, 14,
-        12, 14, 15,
-        16, 17, 18,
-        16, 18, 19,
-        20, 21, 22,
-        20, 22, 23
-    ];
 
     _triangleFacesBuffer = gl_ctx.createBuffer();
     gl_ctx.bindBuffer(gl_ctx.ELEMENT_ARRAY_BUFFER, _triangleFacesBuffer);
@@ -190,13 +180,18 @@ function gl_setMatrix() {
 
 function gl_initTexture() {
     const img = new Image();
-    if (texture === '1') {
-        img.src = 'textures/cubeTexture1.png';
-    } else if (texture === '2'){
-        img.src = 'textures/cubeTexture2.png';
-    } else {
-        img.src = 'textures/cubeTexture3.png';
+    if (figure === '1') {
+        if (texture === '1') {
+            img.src = 'textures/cubeTexture1.png';
+        } else if (texture === '2') {
+            img.src = 'textures/cubeTexture2.png';
+        } else {
+            img.src = 'textures/cubeTexture3.png';
+        }
+    } else if (figure === '2') {
+        img.src = 'textures/tetrahedronTexture.png';
     }
+
     img.webglTexture = false;
 
     img.onload = function (e) {
@@ -255,16 +250,80 @@ function gl_draw() {
             gl_ctx.activeTexture(gl_ctx.TEXTURE0);
             gl_ctx.bindTexture(gl_ctx.TEXTURE_2D, _cubeTexture.webglTexture);
         }
-
-        gl_ctx.vertexAttribPointer(_position, 3, gl_ctx.FLOAT, false, 4 * (3 + 2), 0);
-        gl_ctx.vertexAttribPointer(_uv, 2, gl_ctx.FLOAT, false, 4 * (3 + 2), 3 * 4);
+        gl_ctx.vertexAttribPointer(_position, 3, gl_ctx.FLOAT, false, stride, 0);
+        gl_ctx.vertexAttribPointer(_uv, 2, gl_ctx.FLOAT, false, stride, offset);
 
         gl_ctx.bindBuffer(gl_ctx.ARRAY_BUFFER, _triangleVertexBuffer);
         gl_ctx.bindBuffer(gl_ctx.ELEMENT_ARRAY_BUFFER, _triangleFacesBuffer);
-        gl_ctx.drawElements(gl_ctx.TRIANGLES, 5*2*3, gl_ctx.UNSIGNED_SHORT, 0);
+        gl_ctx.drawElements(gl_ctx.TRIANGLES, count, gl_ctx.UNSIGNED_SHORT, 0);
         gl_ctx.flush();
 
         animation = window.requestAnimationFrame(animate);
     };
     animate(0);
+}
+
+function getQubeTriangleVertices() {
+    return [
+        -1, -1, -1, 0, 0,
+        1, -1, -1, 1, 0,
+        1, 1, -1, 1, 1,
+        -1, 1, -1, 0, 1,
+        -1, -1, 1, 0, 0,
+        1, -1, 1, 1, 0,
+        1, 1, 1, 1, 1,
+        -1, 1, 1, 0, 1,
+        -1, -1, -1, 0, 0,
+        -1, 1, -1, 1, 0,
+        -1, 1, 1, 1, 1,
+        -1, -1, 1, 0, 1,
+        1, -1, -1, 0, 0,
+        1, 1, -1, 1, 0,
+        1, 1, 1, 1, 1,
+        1, -1, 1, 0, 1,
+        -1, -1, -1, 0, 0,
+        -1, -1, 1, 1, 0,
+        1, -1, 1, 1, 1,
+        1, -1, -1, 0, 1,
+        -1, 1, -1, 0, 0,
+        -1, 1, 1, 1, 0,
+        1, 1, 1, 1, 1,
+        1, 1, -1, 0, 1
+    ];
+}
+
+function getQubeTriangleFaces() {
+    return [
+        0, 1, 2,
+        0, 2, 3,
+        4, 5, 6,
+        4, 6, 7,
+        8, 9, 10,
+        8, 10, 11,
+        12, 13, 14,
+        12, 14, 15,
+        16, 17, 18,
+        16, 18, 19,
+        20, 21, 22,
+        20, 22, 23
+    ];
+}
+
+function getTetrahedronTriangleVertices() {
+    return [
+        0, 2, -1, 1, 1,
+        -2, -1, -1, 0, 0,
+        2, -1, -1, 0, 1,
+        0, 0, 2, 1, 0
+    ];
+}
+
+
+function getTetrahedronTriangleFaces() {
+    return [
+        0, 1, 2,
+        0, 2, 3,
+        0, 3, 1,
+        2, 1, 3
+    ];
 }
