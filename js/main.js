@@ -16,6 +16,7 @@ let _matrixProjection;
 let _matrixMovement;
 let _matrixView;
 let _cubeTexture;
+let _color;
 
 const rotationSpeed = 0.001;
 const zoomRatio = -6;
@@ -23,8 +24,16 @@ const zoomRatio = -6;
 let X, Y, Z;
 let texture;
 let animation;
-let offset, stride, count;
+let offset, stride, elements;
 let figure = document.querySelector('input[name="figure"]:checked').value;
+
+let triangleVertices = [];
+let triangleFaces = [];
+
+let vertex = 0;
+let recursion = 3;
+let deformation = 0;
+let length = 4;
 
 function setTextureChoiceDisabled(isDisabled) {
     document.querySelectorAll('input[name="texture"]').forEach(input => input.disabled = isDisabled);
@@ -39,18 +48,50 @@ document.querySelectorAll('input[name="figure"]').forEach(input => input.addEven
     } else {
         setTextureChoiceDisabled(true);
     }
+    runWebGL();
 }));
 
 // funkcja główna 
 function runWebGL() {
+    let runQube = function () {
+        getTexture();
+        gl_initShaders();
+        _cubeTexture = gl_initTexture();
+    }
+    let runTetrahedron = function () {
+        getTexture();
+        gl_initShaders();
+        _cubeTexture = gl_initTexture();
+    }
+    let runSierpinskiCarpet = function () {
+        elements = 0;
+        vertex = 0;
+        gl_initShadersForSierpinskiCarpet();
+        DrawSierpinskiCarpet(length / 2, length / 2, length, recursion);
+    }
+
+    while (triangleVertices.length > 0)
+        triangleVertices.pop();
+    while (triangleFaces.length > 0)
+        triangleFaces.pop();
+        
     getRotation();
-    getTexture();
     gl_canvas = document.getElementById("glcanvas");
     gl_ctx = gl_getContext(gl_canvas);
-    gl_initShaders();
+
+    if (figure === '1') {
+        runQube();
+        console.log("runQube");
+    } else if (figure === '2') {
+        runTetrahedron();
+        console.log("runTetrahedron");
+    } else {
+        runSierpinskiCarpet();
+        console.log("runSierpinskiCarpet");
+    }
+    
     gl_initBuffers();
     gl_setMatrix();
-    _cubeTexture = gl_initTexture();
     gl_draw();
 }
 
@@ -136,48 +177,172 @@ function gl_initShaders() {
     gl_ctx.uniform1i(_sampler, 0);
 }
 
+// shadery dla dywanu Sierpinskiego
+function gl_initShadersForSierpinskiCarpet() {
+    const vertexShader = "\n\
+      attribute vec3 position;\n\
+      uniform mat4 PosMatrix;\n\
+      uniform mat4 MovMatrix;\n\
+      uniform mat4 ViewMatrix; \n\
+      attribute vec3 color;\n\
+      varying vec3 vColor;\n\
+      void main(void) {\n\
+         gl_Position = PosMatrix * ViewMatrix * MovMatrix * vec4(position, 1.);\n\
+         vColor = color;\n\
+      }";
+
+    const fragmentShader = "\n\
+      precision mediump float;\n\
+      varying vec3 vColor;\n\
+      void main(void) {\n\
+         gl_FragColor = vec4(vColor, 1.);\n\
+      }";
+
+    const getShader = function (source, type, typeString) {
+        const shader = gl_ctx.createShader(type);
+        gl_ctx.shaderSource(shader, source);
+        gl_ctx.compileShader(shader);
+
+        if (!gl_ctx.getShaderParameter(shader, gl_ctx.COMPILE_STATUS)) {
+            alert('error in ' + typeString);
+            return false;
+        }
+        return shader;
+    };
+
+    const shaderVertex = getShader(vertexShader, gl_ctx.VERTEX_SHADER, "VERTEX");
+    const shaderFragment = getShader(fragmentShader, gl_ctx.FRAGMENT_SHADER, "FRAGMENT");
+
+    const shaderProgram = gl_ctx.createProgram();
+    gl_ctx.attachShader(shaderProgram, shaderVertex);
+    gl_ctx.attachShader(shaderProgram, shaderFragment);
+
+    gl_ctx.linkProgram(shaderProgram);
+
+    _PosMatrix = gl_ctx.getUniformLocation(shaderProgram, "PosMatrix");
+    _MovMatrix = gl_ctx.getUniformLocation(shaderProgram, "MovMatrix");
+    _ViewMatrix = gl_ctx.getUniformLocation(shaderProgram, "ViewMatrix");
+
+    _position = gl_ctx.getAttribLocation(shaderProgram, "position");
+    _color = gl_ctx.getAttribLocation(shaderProgram, "color");
+    gl_ctx.enableVertexAttribArray(_position);
+    gl_ctx.enableVertexAttribArray(_color);
+    gl_ctx.useProgram(shaderProgram);
+}
+
+// Funkcja rekurencyjna wyliczająca współrzędne składowych Dywanu Sierpińskiego:
+// - współrzędne (x, y), długość boku dywanu, poziom samopodobieństwa - rekurencji.
+function DrawSierpinskiCarpet(x, y, length, level) {
+    if (level > 0) {
+        length = length / 3;
+        level -= 1;
+        DrawSierpinskiCarpet(x - (2 * length), y, length, level);
+        DrawSierpinskiCarpet(x - length, y, length, level);
+        DrawSierpinskiCarpet(x, y, length, level);
+
+        DrawSierpinskiCarpet(x - (2 * length), y - length, length, level);
+        DrawSierpinskiCarpet(x, y - length, length, level);
+
+        DrawSierpinskiCarpet(x - (2 * length), y - (2 * length), length, level);
+        DrawSierpinskiCarpet(x - length, y - (2 * length), length, level);
+        DrawSierpinskiCarpet(x, y - (2 * length), length, level);
+    }
+    else {
+        // Wyliczenie właściwego przesunięcia deformacji.
+        let def;
+        let plus_or_minus;
+        if (deformation !== 0)
+            def = (Math.random() % (0.1 * length)) * (deformation * 0.1);
+        else
+            def = 0;
+
+        // Sprawienie, że przesunięcie w lewo i prawo występują z tym samym prawdopodobieństwem.
+        plus_or_minus = Math.random();
+        if (plus_or_minus < 0.5)
+            def = -def;
+
+        // Prawy-górny wierzchołek kwadratu.
+        triangleVertices.push(x + def);
+        triangleVertices.push(y + def);
+        triangleVertices.push(Math.random());
+        triangleVertices.push(Math.random());
+        triangleVertices.push(Math.random());
+        if (vertex !== 0)
+            vertex = vertex + 1;
+
+        // Prawy-dolny wierzchołek kwadratu.
+        triangleVertices.push(x + def);
+        triangleVertices.push(y - length + def);
+        triangleVertices.push(Math.random());
+        triangleVertices.push(Math.random());
+        triangleVertices.push(Math.random());
+        vertex = vertex + 1;
+
+        // Lewy-dolny wierzchołek kwadratu.
+        triangleVertices.push(x - length + def);
+        triangleVertices.push(y - length + def);
+        triangleVertices.push(Math.random());
+        triangleVertices.push(Math.random());
+        triangleVertices.push(Math.random());
+        vertex = vertex + 1;
+
+        // Lewy-górny wierzchołek kwadratu.
+        triangleVertices.push(x - length + def);
+        triangleVertices.push(y + def);
+        triangleVertices.push(Math.random());
+        triangleVertices.push(Math.random());
+        triangleVertices.push(Math.random());
+        vertex = vertex + 1;
+
+        // Pierwsza połowa kwadratu (trójkąt po stronie prawej).
+        triangleFaces.push(vertex - 3);
+        triangleFaces.push(vertex - 2);
+        triangleFaces.push(vertex - 1);
+
+        // Druga połowa kwadratu (trójkąt po stronie lewej).
+        triangleFaces.push(vertex - 3);
+        triangleFaces.push(vertex - 1);
+        triangleFaces.push(vertex);
+
+        // Powiększenie ilości elementów bufora indeksów.
+        elements = elements + 6;
+    }
+}
+
 // bufory
 function gl_initBuffers() {
-    let triangleVertices, triangleFaces;
     if (figure === '1') {
         triangleVertices = getQubeTriangleVertices();
         triangleFaces = getQubeTriangleFaces();
         stride = (2 + 3) * Float32Array.BYTES_PER_ELEMENT;
         offset = 3 * Float32Array.BYTES_PER_ELEMENT;
-        count = 5*2*3;
+        elements = 5*2*3;
     } else if (figure === '2') {
         triangleVertices = getTetrahedronTriangleVertices();
         triangleFaces = getTetrahedronTriangleFaces();
         stride = (2 + 3) * Float32Array.BYTES_PER_ELEMENT;
         offset = 3 * Float32Array.BYTES_PER_ELEMENT;
-        count = 12;
+        elements = 12;
     }
 
     _triangleVertexBuffer = gl_ctx.createBuffer();
     gl_ctx.bindBuffer(gl_ctx.ARRAY_BUFFER, _triangleVertexBuffer);
-    gl_ctx.bufferData(gl_ctx.ARRAY_BUFFER,
-        new Float32Array(triangleVertices),
-        gl_ctx.STATIC_DRAW);
+    gl_ctx.bufferData(gl_ctx.ARRAY_BUFFER, new Float32Array(triangleVertices), gl_ctx.DYNAMIC_DRAW);
 
     _triangleFacesBuffer = gl_ctx.createBuffer();
     gl_ctx.bindBuffer(gl_ctx.ELEMENT_ARRAY_BUFFER, _triangleFacesBuffer);
-    gl_ctx.bufferData(gl_ctx.ELEMENT_ARRAY_BUFFER,
-        new Uint16Array(triangleFaces),
-        gl_ctx.STATIC_DRAW);
+    gl_ctx.bufferData(gl_ctx.ELEMENT_ARRAY_BUFFER, new Uint16Array(triangleFaces), gl_ctx.DYNAMIC_DRAW);
 }
-
 
 // macierz 
 function gl_setMatrix() {
-    _matrixProjection = MATRIX.getProjection(40,
-        gl_canvas.width / gl_canvas.height, 1, 100);
+    _matrixProjection = MATRIX.getProjection(40, gl_canvas.width / gl_canvas.height, 1, 100);
     _matrixMovement = MATRIX.getIdentityMatrix();
     _matrixView = MATRIX.getIdentityMatrix();
     MATRIX.translateZ(_matrixView, zoomRatio);
 }
 
 // tekstura
-
 function gl_initTexture() {
     const img = new Image();
     if (figure === '1') {
@@ -246,20 +411,27 @@ function gl_draw() {
         gl_ctx.uniformMatrix4fv(_MovMatrix, false, _matrixMovement);
         gl_ctx.uniformMatrix4fv(_ViewMatrix, false, _matrixView);
 
-        if (_cubeTexture.webglTexture) {
-            gl_ctx.activeTexture(gl_ctx.TEXTURE0);
-            gl_ctx.bindTexture(gl_ctx.TEXTURE_2D, _cubeTexture.webglTexture);
+        if (figure === '3') {
+            gl_ctx.vertexAttribPointer(_position, 2, gl_ctx.FLOAT, false, 4 * (2 + 3), 0);
+            gl_ctx.vertexAttribPointer(_color, 3, gl_ctx.FLOAT, false, 4 * (2 + 3), 2 * 4);
+        } else {
+            if (_cubeTexture.webglTexture) {
+                gl_ctx.activeTexture(gl_ctx.TEXTURE0);
+                gl_ctx.bindTexture(gl_ctx.TEXTURE_2D, _cubeTexture.webglTexture);
+            }
+            gl_ctx.vertexAttribPointer(_position, 3, gl_ctx.FLOAT, false, stride, 0);
+            gl_ctx.vertexAttribPointer(_uv, 2, gl_ctx.FLOAT, false, stride, offset);
         }
-        gl_ctx.vertexAttribPointer(_position, 3, gl_ctx.FLOAT, false, stride, 0);
-        gl_ctx.vertexAttribPointer(_uv, 2, gl_ctx.FLOAT, false, stride, offset);
 
         gl_ctx.bindBuffer(gl_ctx.ARRAY_BUFFER, _triangleVertexBuffer);
         gl_ctx.bindBuffer(gl_ctx.ELEMENT_ARRAY_BUFFER, _triangleFacesBuffer);
-        gl_ctx.drawElements(gl_ctx.TRIANGLES, count, gl_ctx.UNSIGNED_SHORT, 0);
+
+        gl_ctx.drawElements(gl_ctx.TRIANGLES, elements, gl_ctx.UNSIGNED_SHORT, 0);
         gl_ctx.flush();
 
         animation = window.requestAnimationFrame(animate);
     };
+
     animate(0);
 }
 
