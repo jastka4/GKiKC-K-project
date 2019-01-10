@@ -1,65 +1,90 @@
 <!DOCTYPE html>
 <html>
+    <head>
+        <meta charset="utf-8" name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>WebGL</title>
+        <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+        <link type="text/css" rel="stylesheet" href="css/style.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    </head>
+    <body>
+        <div class="container">
+            <div class="row">
+                <aside class="col s3">
+                    <div class="figure col s12">
+                        <div class="row">
+                            <a class="waves-effect waves-light btn object" onclick="runQube()">Sześcian</a>
+                            <a class="waves-effect waves-light btn object" onclick="runTetrahedron()">Czworościan</a>
+                            <a class="waves-effect waves-light btn object" onclick="runSierpinskiCarpet()">Dywan Sierpińskiego</a>
+                        </div>
+                    </div>
+                </aside>
+                <div class="col s9">
+                    <div class="row">
+                        <fieldset class="texture col s12">
+                            <legend>Wybierz teksturę obiektu:</legend>
+                            <label>
+                                <input class="with-gap" type="radio" name="texture" value="1" checked>
+                                <span>Tekstura 1</span>
+                            </label>
+                            <label>
+                                <input class="with-gap" type="radio" name="texture" value="2">
+                                <span>Tekstura 2</span>
+                            </label>
+                            <label>
+                                <input class="with-gap" type="radio" name="texture" value="3">
+                                <span>Tekstura 3</span>
+                            </label>
+                            <br>
+                            <br>
+                        </fieldset>
 
-<head>
-    <meta charset="utf-8">
-    <title>WebGL</title>
-    <link rel="stylesheet" href="css/style.css">
-</head>
-
-<body>
-    <form>
-        <div class="texture">
-            <label>
-                <input type="radio" name="texture" value="1" checked> tekstura 1
-            </label>
-            <label>
-                <input type="radio" name="texture" value="2"> tekstura 2
-            </label>
-            <label>
-                <input type="radio" name="texture" value="3"> tekstura 3
-            </label>
-            <br>
-            <br>
+                        <fieldset class="rotate col s12">
+                            <legend>Wybierz rotację obiektu:</legend>
+                            <label>
+                                <input class="filled-in" type="checkbox" id="rotateX">
+                                <span>Rotacja X</span>
+                            </label>
+                            <label>
+                                <input class="filled-in" type="checkbox" id="rotateY">
+                                <span>Rotacja Y</span>
+                            </label>
+                            <label>
+                                <input class="filled-in" type="checkbox" id="rotateZ">
+                                <span>Rotacja Z</span>
+                            </label>
+                            <br>
+                            <br>
+                        </fieldset>
+                        <div class="distortion col s6">
+                            <legend>Wybierz zniekształcenie obiektu:</legend>
+                            <p class="range-field">
+                                <input type="range" name="distortion" min="0" max="100" />
+                            </p>
+                        </div>
+                        <div class="level col s6">
+                            <legend>Wybierz poziom rekurencji obiektu:</legend>
+                            <p class="range-field">
+                                <input type="range" name="level" min="0" max="4" />
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="canvas col s12">
+                    <canvas id="glcanvas" width="700" height="400">
+                        Brak wsparcia dla elementu HTML5 typu canvas
+                    </canvas>
+                    <br>
+                    <a class="waves-effect waves-light btn" onclick="switchPause(this)">Pauza</a>
+                    <a class="waves-effect waves-light btn" onclick="apply()">Zatwierdź zmiany</a>
+                </div>
+            </div>
         </div>
 
-        <div class="figure">
-            <label>
-                <input type="radio" name="figure" value="1" checked> sześcian
-            </label>
-            <label>
-                <input type="radio" name="figure" value="2"> czworościan
-            </label>
-            <label>
-                <input type="radio" name="figure" value="3"> dywan Sierpińskiego
-            </label>
-            <br>
-            <br>
-        </div>
-
-        <div class="rotate">
-            <label>
-                <input type="checkbox" id="rotateX"> rotacja X
-            </label>
-            <label>
-                <input type="checkbox" id="rotateY"> rotacja Y
-            </label>
-            <label>
-                <input type="checkbox" id="rotateZ"> rotacja Z
-            </label>
-            <br>
-            <br>
-        </div>
-    </form>
-
-
-    <canvas id="glcanvas" width="500" height="300">
-        Brak wsparcia dla elementu HTML5 typu canvas
-    </canvas>
-    <br>
-    <input type="button" value="Uruchom" onclick="runWebGL()">
-    <script src="js/main.js"></script>
-    <script src="js/matrix.js"></script>
-</body>
-
+        <script src="js/main.js"></script>
+        <script src="js/matrix.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+    </body>
 </html>

@@ -1,4 +1,43 @@
+body {
+    padding-top: 25px;
+}
+
+span {
+    color: black;
+}
+
+label {
+    margin: 0px 10px 0px 10px;
+}
+
 canvas#glcanvas {
     border: 1px solid #66666D;
     background-color: #545469;
+}
+
+legend {
+    padding: 0;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.object {
+    margin: 20px 0px;
+    width: 100%;
+}
+
+input[type="range"]:disabled::-moz-range-thumb {
+    background-color: #949494 !important;
+}
+
+.canvas {
+    width: 100%;
+    position: relative;
+    text-align: center;
+}
+
+
+
+fieldset {
+    border: 0;
 }

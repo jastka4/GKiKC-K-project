@@ -23,77 +23,17 @@ const zoomRatio = -6;
 
 let X, Y, Z;
 let texture;
-let animation;
+let animation, pause = false;
 let offset, stride, elements;
-let figure = document.querySelector('input[name="figure"]:checked').value;
+let figure = 1;
 
 let triangleVertices = [];
 let triangleFaces = [];
 
 let vertex = 0;
 let recursion = 3;
-let deformation = 0;
+let distortion = 0;
 let length = 4;
-
-function setTextureChoiceDisabled(isDisabled) {
-    document.querySelectorAll('input[name="texture"]').forEach(input => input.disabled = isDisabled);
-}
-
-document.querySelectorAll('input[name="figure"]').forEach(input => input.addEventListener('click', () => {
-    if (input.checked) {
-        figure = input.value;
-    }
-    if (figure === '1') {
-        setTextureChoiceDisabled(false);
-    } else {
-        setTextureChoiceDisabled(true);
-    }
-    runWebGL();
-}));
-
-// funkcja główna 
-function runWebGL() {
-    let runQube = function () {
-        getTexture();
-        gl_initShaders();
-        _cubeTexture = gl_initTexture();
-    }
-    let runTetrahedron = function () {
-        getTexture();
-        gl_initShaders();
-        _cubeTexture = gl_initTexture();
-    }
-    let runSierpinskiCarpet = function () {
-        elements = 0;
-        vertex = 0;
-        gl_initShadersForSierpinskiCarpet();
-        DrawSierpinskiCarpet(length / 2, length / 2, length, recursion);
-    }
-
-    while (triangleVertices.length > 0)
-        triangleVertices.pop();
-    while (triangleFaces.length > 0)
-        triangleFaces.pop();
-        
-    getRotation();
-    gl_canvas = document.getElementById("glcanvas");
-    gl_ctx = gl_getContext(gl_canvas);
-
-    if (figure === '1') {
-        runQube();
-        console.log("runQube");
-    } else if (figure === '2') {
-        runTetrahedron();
-        console.log("runTetrahedron");
-    } else {
-        runSierpinskiCarpet();
-        console.log("runSierpinskiCarpet");
-    }
-    
-    gl_initBuffers();
-    gl_setMatrix();
-    gl_draw();
-}
 
 // osie obrotu
 function getRotation() {
@@ -104,6 +44,101 @@ function getRotation() {
 
 function getTexture() {
     texture = document.querySelector('input[name="texture"]:checked').value;
+}
+
+function getDistortion() {
+    distortion = document.querySelector('input[name="distortion"]').value;
+}
+
+function getRecursion() {
+    recursion = document.querySelector('input[name="level"]').value;
+}
+
+function disableTextureChoice(isDisabled) {
+    document.querySelectorAll('input[name="texture"]').forEach(input => input.disabled = isDisabled);
+}
+
+function disableRangeInputs(isDisabled) {
+    document.querySelectorAll('input[type="range"]').forEach(input => input.disabled = isDisabled);
+}
+
+function switchPause(e) {
+    pause = !pause;
+    if (pause) {
+        e.text = "Start";
+    } else {
+        e.text = "Pauza";
+    }
+}
+
+function apply() {
+    if (figure == 3) {
+        runSierpinskiCarpet();
+    } else {
+        getTexture();
+        _cubeTexture = gl_initTexture();
+        runWebGL();
+    }
+}
+
+function init() {
+    while (triangleVertices.length > 0)
+        triangleVertices.pop();
+    while (triangleFaces.length > 0)
+        triangleFaces.pop();
+    
+    gl_canvas = document.getElementById("glcanvas");
+    gl_ctx = gl_getContext(gl_canvas);
+}
+
+// funkcja główna 
+function runWebGL() {
+    getRotation();    
+    gl_initBuffers();
+    gl_setMatrix();
+    gl_draw();
+}
+
+function runQube() {
+    figure = 1;
+    disableTextureChoice(false);
+    disableRangeInputs(true);
+
+    init();
+    getTexture();
+    gl_initShaders();
+    _cubeTexture = gl_initTexture();
+    
+    runWebGL();
+}
+
+function runTetrahedron() {
+    figure = 2;
+    disableTextureChoice(true);
+    disableRangeInputs(true);
+
+    init();
+    getTexture();
+    gl_initShaders();
+    _cubeTexture = gl_initTexture();
+    
+    runWebGL();
+}
+
+function runSierpinskiCarpet() {
+    figure = 3;
+    disableTextureChoice(true);
+    disableRangeInputs(false);
+
+    elements = 0;
+    vertex = 0;
+    init();
+    getDistortion();
+    getRecursion();
+    gl_initShadersForSierpinskiCarpet();
+    DrawSierpinskiCarpet(length / 2, length / 2, length, recursion);
+    
+    runWebGL();
 }
 
 // pobranie kontekstu WebGL
@@ -251,8 +286,8 @@ function DrawSierpinskiCarpet(x, y, length, level) {
         // Wyliczenie właściwego przesunięcia deformacji.
         let def;
         let plus_or_minus;
-        if (deformation !== 0)
-            def = (Math.random() % (0.1 * length)) * (deformation * 0.1);
+        if (distortion !== 0)
+            def = (Math.random() % (0.1 * length)) * (distortion * 0.1);
         else
             def = 0;
 
@@ -311,13 +346,13 @@ function DrawSierpinskiCarpet(x, y, length, level) {
 
 // bufory
 function gl_initBuffers() {
-    if (figure === '1') {
+    if (figure === 1) {
         triangleVertices = getQubeTriangleVertices();
         triangleFaces = getQubeTriangleFaces();
         stride = (2 + 3) * Float32Array.BYTES_PER_ELEMENT;
         offset = 3 * Float32Array.BYTES_PER_ELEMENT;
         elements = 5*2*3;
-    } else if (figure === '2') {
+    } else if (figure === 2) {
         triangleVertices = getTetrahedronTriangleVertices();
         triangleFaces = getTetrahedronTriangleFaces();
         stride = (2 + 3) * Float32Array.BYTES_PER_ELEMENT;
@@ -345,15 +380,15 @@ function gl_setMatrix() {
 // tekstura
 function gl_initTexture() {
     const img = new Image();
-    if (figure === '1') {
-        if (texture === '1') {
+    if (figure === 1) {
+        if (texture == 1) {
             img.src = 'textures/cubeTexture1.png';
-        } else if (texture === '2') {
+        } else if (texture == 2) {
             img.src = 'textures/cubeTexture2.png';
         } else {
             img.src = 'textures/cubeTexture3.png';
         }
-    } else if (figure === '2') {
+    } else if (figure === 2) {
         img.src = 'textures/tetrahedronTexture.png';
     }
 
@@ -391,15 +426,18 @@ function gl_draw() {
     let timeOld = 0;
 
     const animate = function (time) {
-        const dAngle = rotationSpeed * (time - timeOld);
-        if (X) {
-            MATRIX.rotateX(_matrixMovement, dAngle);
-        }
-        if (Y) {
-            MATRIX.rotateY(_matrixMovement, dAngle);
-        }
-        if (Z) {
-            MATRIX.rotateZ(_matrixMovement, dAngle);
+
+        if (!pause) {
+            const dAngle = rotationSpeed * (time - timeOld);
+            if (X) {
+                MATRIX.rotateX(_matrixMovement, dAngle);
+            }
+            if (Y) {
+                MATRIX.rotateY(_matrixMovement, dAngle);
+            }
+            if (Z) {
+                MATRIX.rotateZ(_matrixMovement, dAngle);
+            }
         }
 
         timeOld = time;
@@ -411,7 +449,7 @@ function gl_draw() {
         gl_ctx.uniformMatrix4fv(_MovMatrix, false, _matrixMovement);
         gl_ctx.uniformMatrix4fv(_ViewMatrix, false, _matrixView);
 
-        if (figure === '3') {
+        if (figure === 3) {
             gl_ctx.vertexAttribPointer(_position, 2, gl_ctx.FLOAT, false, 4 * (2 + 3), 0);
             gl_ctx.vertexAttribPointer(_color, 3, gl_ctx.FLOAT, false, 4 * (2 + 3), 2 * 4);
         } else {
