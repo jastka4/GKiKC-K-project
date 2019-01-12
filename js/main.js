@@ -136,7 +136,7 @@ function runSierpinskiCarpet() {
     getDistortion();
     getRecursion();
     gl_initShadersForSierpinskiCarpet();
-    DrawSierpinskiCarpet(length / 2, length / 2, length, recursion);
+    drawSierpinskiCarpet(length / 2, length / 2, length, recursion);
     
     runWebGL();
 }
@@ -266,82 +266,82 @@ function gl_initShadersForSierpinskiCarpet() {
 }
 
 // Funkcja rekurencyjna wyliczająca współrzędne składowych Dywanu Sierpińskiego:
-// - współrzędne (x, y), długość boku dywanu, poziom samopodobieństwa - rekurencji.
-function DrawSierpinskiCarpet(x, y, length, level) {
+// - współrzędne (x, y), długość boku dywanu, poziom rekurencji.
+function drawSierpinskiCarpet(x, y, length, level) {
     if (level > 0) {
         length = length / 3;
         level -= 1;
-        DrawSierpinskiCarpet(x - (2 * length), y, length, level);
-        DrawSierpinskiCarpet(x - length, y, length, level);
-        DrawSierpinskiCarpet(x, y, length, level);
+        drawSierpinskiCarpet(x - (2 * length), y, length, level);
+        drawSierpinskiCarpet(x - length, y, length, level);
+        drawSierpinskiCarpet(x, y, length, level);
 
-        DrawSierpinskiCarpet(x - (2 * length), y - length, length, level);
-        DrawSierpinskiCarpet(x, y - length, length, level);
+        drawSierpinskiCarpet(x - (2 * length), y - length, length, level);
+        drawSierpinskiCarpet(x, y - length, length, level);
 
-        DrawSierpinskiCarpet(x - (2 * length), y - (2 * length), length, level);
-        DrawSierpinskiCarpet(x - length, y - (2 * length), length, level);
-        DrawSierpinskiCarpet(x, y - (2 * length), length, level);
-    }
-    else {
-        // Wyliczenie właściwego przesunięcia deformacji.
-        let def;
-        let plus_or_minus;
-        if (distortion !== 0)
-            def = (Math.random() % (0.1 * length)) * (distortion * 0.1);
-        else
-            def = 0;
-
-        // Sprawienie, że przesunięcie w lewo i prawo występują z tym samym prawdopodobieństwem.
-        plus_or_minus = Math.random();
-        if (plus_or_minus < 0.5)
-            def = -def;
-
-        // Prawy-górny wierzchołek kwadratu.
-        triangleVertices.push(x + def);
-        triangleVertices.push(y + def);
-        triangleVertices.push(Math.random());
-        triangleVertices.push(Math.random());
-        triangleVertices.push(Math.random());
+        drawSierpinskiCarpet(x - (2 * length), y - (2 * length), length, level);
+        drawSierpinskiCarpet(x - length, y - (2 * length), length, level);
+        drawSierpinskiCarpet(x, y - (2 * length), length, level);
+    } else {
+        let variation = getVariation(length);
+        // prawy górny wierzchołek kwadratu
+        addVertex(x, y, variation);
         if (vertex !== 0)
             vertex = vertex + 1;
 
-        // Prawy-dolny wierzchołek kwadratu.
-        triangleVertices.push(x + def);
-        triangleVertices.push(y - length + def);
-        triangleVertices.push(Math.random());
-        triangleVertices.push(Math.random());
-        triangleVertices.push(Math.random());
+        // prawy dolny wierzchołek kwadratu
+        addVertex(x, y - length, variation);
         vertex = vertex + 1;
 
-        // Lewy-dolny wierzchołek kwadratu.
-        triangleVertices.push(x - length + def);
-        triangleVertices.push(y - length + def);
-        triangleVertices.push(Math.random());
-        triangleVertices.push(Math.random());
-        triangleVertices.push(Math.random());
+        // lewy dolny wierzchołek kwadratu
+        addVertex(x - length, y -length, variation);
         vertex = vertex + 1;
 
-        // Lewy-górny wierzchołek kwadratu.
-        triangleVertices.push(x - length + def);
-        triangleVertices.push(y + def);
-        triangleVertices.push(Math.random());
-        triangleVertices.push(Math.random());
-        triangleVertices.push(Math.random());
+        // lewy górny wierzchołek kwadratu
+        addVertex(x - length, y, variation);
         vertex = vertex + 1;
 
-        // Pierwsza połowa kwadratu (trójkąt po stronie prawej).
-        triangleFaces.push(vertex - 3);
-        triangleFaces.push(vertex - 2);
-        triangleFaces.push(vertex - 1);
-
-        // Druga połowa kwadratu (trójkąt po stronie lewej).
-        triangleFaces.push(vertex - 3);
-        triangleFaces.push(vertex - 1);
-        triangleFaces.push(vertex);
-
-        // Powiększenie ilości elementów bufora indeksów.
-        elements = elements + 6;
+        addFace(vertex);
     }
+}
+
+function addVertex(x, y, variation) {
+    triangleVertices.push(x + variation);
+    triangleVertices.push(y + variation);
+    triangleVertices.push(Math.random());
+    triangleVertices.push(Math.random());
+    triangleVertices.push(Math.random());
+}
+
+function addFace(vertex) {
+    // pierwsza połowa kwadratu (prawy dolny trójkąt)
+    triangleFaces.push(vertex - 3);
+    triangleFaces.push(vertex - 2);
+    triangleFaces.push(vertex - 1);
+
+    // druga połowa kwadratu (lewy górny trójkąt)
+    triangleFaces.push(vertex - 3);
+    triangleFaces.push(vertex - 1);
+    triangleFaces.push(vertex);
+
+    elements += 6; // powiększenie ilości elementów bufora indeksów
+}
+
+function getVariation(length) {
+        // wyliczenie właściwego przesunięcia deformacji
+        let variation;
+        if (distortion !== 0) {
+            variation = (Math.random() % (0.1 * length)) * (distortion * 0.1);
+        } else {
+            variation = 0;
+        }
+        
+        // zapewnienie, że przesunięcie w lewo i prawo występują z takim samym prawdopodobieństwem
+        let probability = Math.random();
+        if (probability < 0.5) {
+            variation = -variation;
+        }
+
+        return variation
 }
 
 // bufory
@@ -351,13 +351,16 @@ function gl_initBuffers() {
         triangleFaces = getQubeTriangleFaces();
         stride = (2 + 3) * Float32Array.BYTES_PER_ELEMENT;
         offset = 3 * Float32Array.BYTES_PER_ELEMENT;
-        elements = 5*2*3;
+        elements = 5 * 3 * 2;
     } else if (figure === 2) {
         triangleVertices = getTetrahedronTriangleVertices();
         triangleFaces = getTetrahedronTriangleFaces();
         stride = (2 + 3) * Float32Array.BYTES_PER_ELEMENT;
         offset = 3 * Float32Array.BYTES_PER_ELEMENT;
-        elements = 12;
+        elements = 4 * 3;
+    } else {
+        stride = (2 + 3) * Float32Array.BYTES_PER_ELEMENT;
+        offset = 2 * Float32Array.BYTES_PER_ELEMENT;
     }
 
     _triangleVertexBuffer = gl_ctx.createBuffer();
@@ -426,7 +429,6 @@ function gl_draw() {
     let timeOld = 0;
 
     const animate = function (time) {
-
         if (!pause) {
             const dAngle = rotationSpeed * (time - timeOld);
             if (X) {
@@ -450,8 +452,8 @@ function gl_draw() {
         gl_ctx.uniformMatrix4fv(_ViewMatrix, false, _matrixView);
 
         if (figure === 3) {
-            gl_ctx.vertexAttribPointer(_position, 2, gl_ctx.FLOAT, false, 4 * (2 + 3), 0);
-            gl_ctx.vertexAttribPointer(_color, 3, gl_ctx.FLOAT, false, 4 * (2 + 3), 2 * 4);
+            gl_ctx.vertexAttribPointer(_position, 2, gl_ctx.FLOAT, false, stride, 0);
+            gl_ctx.vertexAttribPointer(_color, 3, gl_ctx.FLOAT, false, stride, offset);
         } else {
             if (_cubeTexture.webglTexture) {
                 gl_ctx.activeTexture(gl_ctx.TEXTURE0);
