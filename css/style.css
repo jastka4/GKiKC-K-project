@@ -26,8 +26,16 @@ legend {
     width: 100%;
 }
 
+input[type="range"]:disabled::-webkit-slider-thumb {
+    background-color: #949494;
+}
+
 input[type="range"]:disabled::-moz-range-thumb {
-    background-color: #949494 !important;
+    background-color: #949494;
+}
+
+input[type="range"]:disabled::-ms-thumb {
+    background-color: #949494;
 }
 
 .canvas {
